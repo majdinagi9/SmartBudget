@@ -13,11 +13,18 @@ const historySection = document.getElementById('history-section');
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 let editIndex = null;
 
+// Ensure the transaction history is hidden initially
+historySection.style.display = 'none';
+
 // Toggle Transaction History visibility
 toggleHistoryButton.addEventListener('click', () => {
-    const isHidden = historySection.style.display === 'none';
-    historySection.style.display = isHidden ? 'block' : 'none';
-    toggleHistoryButton.textContent = isHidden ? 'Hide Transaction History' : 'Show Transaction History';
+    if (historySection.style.display === 'none') {
+        historySection.style.display = 'block';
+        toggleHistoryButton.textContent = 'Hide Transaction History';
+    } else {
+        historySection.style.display = 'none';
+        toggleHistoryButton.textContent = 'Show Transaction History';
+    }
 });
 
 function updateBalance() {
