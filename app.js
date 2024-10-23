@@ -6,10 +6,19 @@ const saveTransactionButton = document.getElementById('save-transaction');
 const historyList = document.getElementById('history-list');
 const balanceDisplay = document.getElementById('balance');
 const clearDataButton = document.getElementById('clear-data');
+const toggleHistoryButton = document.getElementById('toggle-history');
+const historySection = document.getElementById('history-section');
 
 // Load existing transactions from LocalStorage
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 let editIndex = null;
+
+// Toggle Transaction History visibility
+toggleHistoryButton.addEventListener('click', () => {
+    const isHidden = historySection.style.display === 'none';
+    historySection.style.display = isHidden ? 'block' : 'none';
+    toggleHistoryButton.textContent = isHidden ? 'Hide Transaction History' : 'Show Transaction History';
+});
 
 function updateBalance() {
     const total = transactions.reduce((acc, transaction) => acc + transaction.amount, 0);
@@ -20,10 +29,14 @@ function displayTransactions() {
     historyList.innerHTML = ''; // Clear the history list
     transactions.forEach((transaction, index) => {
         const listItem = document.createElement('li');
+        listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
         listItem.innerHTML = `
             <span>${transaction.description}</span>
-            <span>${transaction.amount > 0 ? '+' : ''}$${transaction.amount.toFixed(2)}</span>
-            <button onclick="editTransaction(${index})">Edit</button>
+            <span>
+                ${transaction.amount > 0 ? '+' : ''}$${transaction.amount.toFixed(2)}
+                <button class="btn btn-danger btn-sm ms-2" onclick="deleteTransaction(${index})">Delete</button>
+                <button class="btn btn-primary btn-sm ms-2" onclick="editTransaction(${index})">Edit</button>
+            </span>
         `;
         historyList.appendChild(listItem);
     });
@@ -57,7 +70,7 @@ function editTransaction(index) {
     amountInput.value = transaction.amount;
 
     addTransactionButton.style.display = 'none';
-    saveTransactionButton.style.display = 'inline-block';
+    saveTransactionButton.style.display = 'block';
 }
 
 function saveTransaction() {
@@ -76,7 +89,7 @@ function saveTransaction() {
             amountInput.value = '';
             editIndex = null;
 
-            addTransactionButton.style.display = 'inline-block';
+            addTransactionButton.style.display = 'block';
             saveTransactionButton.style.display = 'none';
 
             // Update UI
@@ -84,6 +97,13 @@ function saveTransaction() {
             displayTransactions();
         }
     }
+}
+
+function deleteTransaction(index) {
+    transactions.splice(index, 1); // Remove the transaction from the array
+    localStorage.setItem('transactions', JSON.stringify(transactions)); // Update LocalStorage
+    updateBalance();
+    displayTransactions(); // Refresh the list
 }
 
 function clearAllData() {
