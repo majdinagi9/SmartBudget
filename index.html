@@ -68,15 +68,19 @@
 
     <!-- Google OAuth Sign-In Callback -->
     <script>
+        let userId = null;  // This will store the unique Google user ID
+
         function onSignIn(response) {
             const userData = response.credential;
             const decodedToken = jwt_decode(userData);
+            userId = decodedToken.sub;  // Extract the unique user ID (sub)
 
             // Hide the Google login button after sign-in
             document.getElementById('login-section').style.display = 'none';
 
             // Show the user info and finance tracker
             displayUserInfo(decodedToken);
+            loadUserData();  // Load user-specific data
         }
 
         // Display User Info and Finance Tracker
