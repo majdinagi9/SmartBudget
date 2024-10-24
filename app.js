@@ -105,7 +105,7 @@ function saveTransaction() {
         }
     }
 }
-
+ 
 function deleteTransaction(index) {
     transactions.splice(index, 1); // Remove the transaction from the array
     localStorage.setItem('transactions', JSON.stringify(transactions)); // Update LocalStorage
