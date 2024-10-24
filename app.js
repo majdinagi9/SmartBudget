@@ -9,30 +9,12 @@ const clearDataButton = document.getElementById('clear-data');
 const toggleHistoryButton = document.getElementById('toggle-history');
 const historySection = document.getElementById('history-section');
 
-let transactions = [];
+// Load existing transactions from LocalStorage
+let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 let editIndex = null;
 
 // Ensure the transaction history is hidden initially
 historySection.style.display = 'none';
-
-// Load existing transactions from LocalStorage for the logged-in user
-function loadUserData() {
-    const userTransactions = localStorage.getItem(`transactions_${userId}`);
-    if (userTransactions) {
-        transactions = JSON.parse(userTransactions);
-    } else {
-        transactions = [];  // Initialize an empty list for new users
-    }
-    updateBalance();
-    displayTransactions();
-}
-
-// Save transactions to LocalStorage for the current user
-function saveUserData() {
-    if (userId) {
-        localStorage.setItem(`transactions_${userId}`, JSON.stringify(transactions));
-    }
-}
 
 // Toggle Transaction History visibility
 toggleHistoryButton.addEventListener('click', () => {
@@ -47,7 +29,7 @@ toggleHistoryButton.addEventListener('click', () => {
 
 function updateBalance() {
     const total = transactions.reduce((acc, transaction) => acc + transaction.amount, 0);
-    balanceDisplay.textContent = `$${total.toFixed(2)}`;
+    balanceDisplay.textContent = $${total.toFixed(2)};
 }
 
 function displayTransactions() {
@@ -55,14 +37,14 @@ function displayTransactions() {
     transactions.forEach((transaction, index) => {
         const listItem = document.createElement('li');
         listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-        listItem.innerHTML = `
+        listItem.innerHTML = 
             <span>${transaction.description}</span>
             <span>
                 ${transaction.amount > 0 ? '+' : ''}$${transaction.amount.toFixed(2)}
                 <button class="btn btn-danger btn-sm ms-2" onclick="deleteTransaction(${index})">Delete</button>
                 <button class="btn btn-primary btn-sm ms-2" onclick="editTransaction(${index})">Edit</button>
             </span>
-        `;
+        ;
         historyList.appendChild(listItem);
     });
 }
@@ -75,8 +57,8 @@ function addTransaction() {
         const transaction = { description, amount };
         transactions.push(transaction);
 
-        // Save the updated transactions to LocalStorage for this user
-        saveUserData();
+        // Save the updated transactions to LocalStorage
+        localStorage.setItem('transactions', JSON.stringify(transactions));
 
         // Clear input fields
         descriptionInput.value = '';
@@ -106,8 +88,8 @@ function saveTransaction() {
         if (description && !isNaN(amount)) {
             transactions[editIndex] = { description, amount };
 
-            // Save the updated transactions to LocalStorage for this user
-            saveUserData();
+            // Save the updated transactions to LocalStorage
+            localStorage.setItem('transactions', JSON.stringify(transactions));
 
             // Clear input fields and reset buttons
             descriptionInput.value = '';
@@ -126,14 +108,14 @@ function saveTransaction() {
 
 function deleteTransaction(index) {
     transactions.splice(index, 1); // Remove the transaction from the array
-    saveUserData(); // Update LocalStorage
+    localStorage.setItem('transactions', JSON.stringify(transactions)); // Update LocalStorage
     updateBalance();
     displayTransactions(); // Refresh the list
 }
 
 function clearAllData() {
     transactions = [];
-    localStorage.removeItem(`transactions_${userId}`);
+    localStorage.removeItem('transactions');
     updateBalance();
     displayTransactions();
 }
@@ -143,4 +125,6 @@ addTransactionButton.addEventListener('click', addTransaction);
 saveTransactionButton.addEventListener('click', saveTransaction);
 clearDataButton.addEventListener('click', clearAllData);
 
-// Data will load after the user logs in
+// Initial load
+updateBalance();
+displayTransactions();
