@@ -29,7 +29,9 @@ function loadUserData() {
 
 // Save transactions to LocalStorage for the current user
 function saveUserData() {
-    localStorage.setItem(`transactions_${userId}`, JSON.stringify(transactions));
+    if (userId) {
+        localStorage.setItem(`transactions_${userId}`, JSON.stringify(transactions));
+    }
 }
 
 // Toggle Transaction History visibility
@@ -141,4 +143,4 @@ addTransactionButton.addEventListener('click', addTransaction);
 saveTransactionButton.addEventListener('click', saveTransaction);
 clearDataButton.addEventListener('click', clearAllData);
 
-// Initial load will happen after user login
+// Data will load after the user logs in
