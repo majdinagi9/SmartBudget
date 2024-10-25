@@ -8,6 +8,7 @@ const balanceDisplay = document.getElementById('balance');
 const clearDataButton = document.getElementById('clear-data');
 const toggleHistoryButton = document.getElementById('toggle-history');
 const historySection = document.getElementById('history-section');
+const exportDataButton = document.getElementById('export-data'); // New Export Button
 
 // Load existing transactions from LocalStorage
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
@@ -27,6 +28,7 @@ toggleHistoryButton.addEventListener('click', () => {
     }
 });
 
+// Update balance and display transactions
 function updateBalance() {
     const total = transactions.reduce((acc, transaction) => acc + transaction.amount, 0);
     balanceDisplay.textContent = `$${total.toFixed(2)}`;
@@ -37,6 +39,8 @@ function displayTransactions() {
     transactions.forEach((transaction, index) => {
         const listItem = document.createElement('li');
         listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+        listItem.setAttribute('draggable', true); // Make the item draggable
+        listItem.dataset.index = index; // Store the index for reordering
         listItem.innerHTML = `
             <span>${transaction.description}</span>
             <span>
@@ -47,83 +51,63 @@ function displayTransactions() {
         `;
         historyList.appendChild(listItem);
     });
+
+    makeItemsDraggable(); // Enable drag functionality
 }
 
-function addTransaction() {
-    const description = descriptionInput.value;
-    const amount = parseFloat(amountInput.value);
-
-    if (description && !isNaN(amount)) {
-        const transaction = { description, amount };
-        transactions.push(transaction);
-
-        // Save the updated transactions to LocalStorage
-        localStorage.setItem('transactions', JSON.stringify(transactions));
-
-        // Clear input fields
-        descriptionInput.value = '';
-        amountInput.value = '';
-
-        // Update UI
-        updateBalance();
-        displayTransactions();
-    }
+// Drag and drop functionality
+function makeItemsDraggable() {
+    const items = historyList.querySelectorAll('li');
+    items.forEach(item => {
+        item.addEventListener('dragstart', dragStart);
+        item.addEventListener('dragover', dragOver);
+        item.addEventListener('drop', drop);
+        item.addEventListener('dragend', dragEnd);
+    });
 }
 
-function editTransaction(index) {
-    editIndex = index;
-    const transaction = transactions[index];
-    descriptionInput.value = transaction.description;
-    amountInput.value = transaction.amount;
+let draggedItemIndex;
 
-    addTransactionButton.style.display = 'none';
-    saveTransactionButton.style.display = 'block';
+function dragStart(event) {
+    draggedItemIndex = event.target.dataset.index;
+    event.target.style.opacity = 0.5;
 }
 
-function saveTransaction() {
-    if (editIndex !== null) {
-        const description = descriptionInput.value;
-        const amount = parseFloat(amountInput.value);
-
-        if (description && !isNaN(amount)) {
-            transactions[editIndex] = { description, amount };
-
-            // Save the updated transactions to LocalStorage
-            localStorage.setItem('transactions', JSON.stringify(transactions));
-
-            // Clear input fields and reset buttons
-            descriptionInput.value = '';
-            amountInput.value = '';
-            editIndex = null;
-
-            addTransactionButton.style.display = 'block';
-            saveTransactionButton.style.display = 'none';
-
-            // Update UI
-            updateBalance();
-            displayTransactions();
-        }
-    }
+function dragOver(event) {
+    event.preventDefault();
 }
 
-function deleteTransaction(index) {
-    transactions.splice(index, 1); // Remove the transaction from the array
+function drop(event) {
+    const targetIndex = event.target.closest('li').dataset.index;
+    [transactions[draggedItemIndex], transactions[targetIndex]] = [transactions[targetIndex], transactions[draggedItemIndex]]; // Swap items
     localStorage.setItem('transactions', JSON.stringify(transactions)); // Update LocalStorage
-    updateBalance();
-    displayTransactions(); // Refresh the list
+    displayTransactions(); // Refresh list
 }
 
-function clearAllData() {
-    transactions = [];
-    localStorage.removeItem('transactions');
-    updateBalance();
-    displayTransactions();
+function dragEnd(event) {
+    event.target.style.opacity = 1;
+}
+
+// Export to CSV functionality
+function exportToCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,Description,Amount\n";
+    transactions.forEach(transaction => {
+        csvContent += `${transaction.description},${transaction.amount}\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "transactions.csv");
+    document.body.appendChild(link); // Required for Firefox
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Event Listeners
 addTransactionButton.addEventListener('click', addTransaction);
 saveTransactionButton.addEventListener('click', saveTransaction);
 clearDataButton.addEventListener('click', clearAllData);
+exportDataButton.addEventListener('click', exportToCSV); // Add export button functionality
 
 // Initial load
 updateBalance();
