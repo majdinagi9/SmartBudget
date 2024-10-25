@@ -47,6 +47,66 @@ function displayTransactions() {
     enableDragAndDrop(); // Enable drag and drop
 }
 
+// Add new transaction
+function addTransaction() {
+    const description = descriptionInput.value;
+    const amount = parseFloat(amountInput.value);
+
+    // Ensure valid input before adding
+    if (description && !isNaN(amount)) {
+        const transaction = { description, amount };
+        transactions.push(transaction);
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        
+        // Clear input fields
+        descriptionInput.value = '';
+        amountInput.value = '';
+
+        // Update balance and display
+        updateBalance();
+        displayTransactions();
+    } else {
+        alert("Please enter a valid description and amount.");
+    }
+}
+
+// Delete transaction
+function deleteTransaction(index) {
+    transactions.splice(index, 1);
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+    updateBalance();
+    displayTransactions();
+}
+
+// Edit transaction
+function editTransaction(index) {
+    editIndex = index;
+    const transaction = transactions[index];
+    descriptionInput.value = transaction.description;
+    amountInput.value = transaction.amount;
+    addTransactionButton.style.display = 'none';
+    saveTransactionButton.style.display = 'block';
+}
+
+// Save edited transaction
+function saveTransaction() {
+    if (editIndex !== null) {
+        const description = descriptionInput.value;
+        const amount = parseFloat(amountInput.value);
+        if (description && !isNaN(amount)) {
+            transactions[editIndex] = { description, amount };
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            descriptionInput.value = '';
+            amountInput.value = '';
+            editIndex = null;
+            addTransactionButton.style.display = 'block';
+            saveTransactionButton.style.display = 'none';
+            updateBalance();
+            displayTransactions();
+        }
+    }
+}
+
 // Enable Drag-and-Drop for Desktop and Mobile
 function enableDragAndDrop() {
     const items = historyList.querySelectorAll('li');
@@ -117,6 +177,14 @@ function exportToCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// Clear all transactions
+function clearAllData() {
+    transactions = [];
+    localStorage.removeItem('transactions');
+    updateBalance();
+    displayTransactions();
 }
 
 // Event Listeners for basic functions
