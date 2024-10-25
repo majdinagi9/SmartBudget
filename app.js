@@ -17,7 +17,7 @@ let editIndex = null;
 // Initialize UI
 updateBalance();
 displayTransactions();
-historySection.style.display = 'none'; // Start with history hidden
+historySection.style.display = 'none';
 
 // Function to update balance
 function updateBalance() {
@@ -31,6 +31,7 @@ function displayTransactions() {
     transactions.forEach((transaction, index) => {
         const listItem = document.createElement('li');
         listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+        listItem.dataset.index = index; // Store the index for reordering
         listItem.innerHTML = `
             <span>${transaction.description}</span>
             <span>
@@ -39,59 +40,70 @@ function displayTransactions() {
                 <button class="btn btn-primary btn-sm ms-2" onclick="editTransaction(${index})">Edit</button>
             </span>
         `;
+        listItem.setAttribute('draggable', true); // Make item draggable for desktop
         historyList.appendChild(listItem);
+    });
+
+    enableDragAndDrop(); // Enable drag and drop
+}
+
+// Enable Drag-and-Drop for Desktop and Mobile
+function enableDragAndDrop() {
+    const items = historyList.querySelectorAll('li');
+    let draggedItemIndex = null;
+
+    items.forEach(item => {
+        // Desktop drag events
+        item.addEventListener('dragstart', (e) => {
+            draggedItemIndex = item.dataset.index;
+            setTimeout(() => (item.style.display = 'none'), 0);
+        });
+        item.addEventListener('dragend', () => {
+            setTimeout(() => {
+                item.style.display = 'block';
+                draggedItemIndex = null;
+            }, 0);
+        });
+        item.addEventListener('dragover', (e) => e.preventDefault());
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const targetIndex = e.target.closest('li').dataset.index;
+            if (draggedItemIndex !== null && targetIndex !== null) {
+                reorderTransactions(draggedItemIndex, targetIndex);
+            }
+        });
+
+        // Mobile touch events
+        item.addEventListener('touchstart', (e) => {
+            draggedItemIndex = item.dataset.index;
+            item.style.opacity = 0.5;
+        });
+        item.addEventListener('touchmove', (e) => {
+            const touchLocation = e.targetTouches[0];
+            item.style.position = "absolute";
+            item.style.left = `${touchLocation.pageX}px`;
+            item.style.top = `${touchLocation.pageY}px`;
+        });
+        item.addEventListener('touchend', (e) => {
+            item.style.opacity = 1;
+            item.style.position = "relative";
+            item.style.left = "0px";
+            item.style.top = "0px";
+            const targetElement = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            const targetIndex = targetElement.closest('li')?.dataset.index;
+            if (draggedItemIndex !== null && targetIndex !== null && draggedItemIndex !== targetIndex) {
+                reorderTransactions(draggedItemIndex, targetIndex);
+            }
+        });
     });
 }
 
-// Add new transaction
-function addTransaction() {
-    const description = descriptionInput.value;
-    const amount = parseFloat(amountInput.value);
-    if (description && !isNaN(amount)) {
-        transactions.push({ description, amount });
-        localStorage.setItem('transactions', JSON.stringify(transactions));
-        descriptionInput.value = '';
-        amountInput.value = '';
-        updateBalance();
-        displayTransactions();
-    }
-}
-
-// Delete transaction
-function deleteTransaction(index) {
-    transactions.splice(index, 1);
+// Function to reorder transactions in array and update UI
+function reorderTransactions(fromIndex, toIndex) {
+    const item = transactions.splice(fromIndex, 1)[0];
+    transactions.splice(toIndex, 0, item);
     localStorage.setItem('transactions', JSON.stringify(transactions));
-    updateBalance();
-    displayTransactions();
-}
-
-// Edit transaction
-function editTransaction(index) {
-    editIndex = index;
-    const transaction = transactions[index];
-    descriptionInput.value = transaction.description;
-    amountInput.value = transaction.amount;
-    addTransactionButton.style.display = 'none';
-    saveTransactionButton.style.display = 'block';
-}
-
-// Save edited transaction
-function saveTransaction() {
-    if (editIndex !== null) {
-        const description = descriptionInput.value;
-        const amount = parseFloat(amountInput.value);
-        if (description && !isNaN(amount)) {
-            transactions[editIndex] = { description, amount };
-            localStorage.setItem('transactions', JSON.stringify(transactions));
-            descriptionInput.value = '';
-            amountInput.value = '';
-            editIndex = null;
-            addTransactionButton.style.display = 'block';
-            saveTransactionButton.style.display = 'none';
-            updateBalance();
-            displayTransactions();
-        }
-    }
+    displayTransactions(); // Refresh the display to reflect new order
 }
 
 // Export transactions to CSV
@@ -107,15 +119,7 @@ function exportToCSV() {
     document.body.removeChild(link);
 }
 
-// Clear all transactions
-function clearAllData() {
-    transactions = [];
-    localStorage.removeItem('transactions');
-    updateBalance();
-    displayTransactions();
-}
-
-// Event Listeners
+// Event Listeners for basic functions
 addTransactionButton.addEventListener('click', addTransaction);
 saveTransactionButton.addEventListener('click', saveTransaction);
 clearDataButton.addEventListener('click', clearAllData);
