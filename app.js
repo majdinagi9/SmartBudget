@@ -8,7 +8,7 @@ const balanceDisplay = document.getElementById('balance');
 const clearDataButton = document.getElementById('clear-data');
 const toggleHistoryButton = document.getElementById('toggle-history');
 const historySection = document.getElementById('history-section');
-const exportDataButton = document.getElementById('export-data'); // New Export Button
+const exportDataButton = document.getElementById('export-data'); // Reference export button
 
 // Load existing transactions from LocalStorage
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
@@ -28,7 +28,6 @@ toggleHistoryButton.addEventListener('click', () => {
     }
 });
 
-// Update balance and display transactions
 function updateBalance() {
     const total = transactions.reduce((acc, transaction) => acc + transaction.amount, 0);
     balanceDisplay.textContent = `$${total.toFixed(2)}`;
@@ -39,7 +38,6 @@ function displayTransactions() {
     transactions.forEach((transaction, index) => {
         const listItem = document.createElement('li');
         listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-        listItem.setAttribute('draggable', true); // Make the item draggable
         listItem.dataset.index = index; // Store the index for reordering
         listItem.innerHTML = `
             <span>${transaction.description}</span>
@@ -49,56 +47,83 @@ function displayTransactions() {
                 <button class="btn btn-primary btn-sm ms-2" onclick="editTransaction(${index})">Edit</button>
             </span>
         `;
+        listItem.setAttribute('draggable', true); // Make item draggable for desktop
         historyList.appendChild(listItem);
     });
 
-    makeItemsDraggable(); // Enable drag functionality
+    enableDragAndDrop(); // Enable drag and drop
 }
 
-// Drag and drop functionality
-function makeItemsDraggable() {
+function enableDragAndDrop() {
     const items = historyList.querySelectorAll('li');
+    let draggedItem = null;
+
     items.forEach(item => {
-        item.addEventListener('dragstart', dragStart);
-        item.addEventListener('dragover', dragOver);
-        item.addEventListener('drop', drop);
-        item.addEventListener('dragend', dragEnd);
+        // For desktop
+        item.addEventListener('dragstart', (e) => {
+            draggedItem = item;
+            setTimeout(() => (item.style.display = 'none'), 0);
+        });
+        item.addEventListener('dragend', () => {
+            setTimeout(() => {
+                draggedItem.style.display = 'block';
+                draggedItem = null;
+            }, 0);
+        });
+        item.addEventListener('dragover', (e) => e.preventDefault());
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (draggedItem) {
+                historyList.insertBefore(draggedItem, item);
+                updateTransactionOrder(); // Update transactions order
+            }
+        });
+
+        // For mobile (touch events)
+        item.addEventListener('touchstart', (e) => {
+            draggedItem = item;
+            e.target.style.opacity = 0.5;
+        });
+        item.addEventListener('touchmove', (e) => {
+            const touchLocation = e.targetTouches[0];
+            item.style.position = "absolute";
+            item.style.left = `${touchLocation.pageX}px`;
+            item.style.top = `${touchLocation.pageY}px`;
+        });
+        item.addEventListener('touchend', (e) => {
+            e.target.style.opacity = 1;
+            item.style.position = "relative";
+            item.style.left = "0px";
+            item.style.top = "0px";
+            if (draggedItem && e.target !== draggedItem) {
+                historyList.insertBefore(draggedItem, e.target);
+                updateTransactionOrder();
+            }
+        });
     });
 }
 
-let draggedItemIndex;
-
-function dragStart(event) {
-    draggedItemIndex = event.target.dataset.index;
-    event.target.style.opacity = 0.5;
-}
-
-function dragOver(event) {
-    event.preventDefault();
-}
-
-function drop(event) {
-    const targetIndex = event.target.closest('li').dataset.index;
-    [transactions[draggedItemIndex], transactions[targetIndex]] = [transactions[targetIndex], transactions[draggedItemIndex]]; // Swap items
-    localStorage.setItem('transactions', JSON.stringify(transactions)); // Update LocalStorage
-    displayTransactions(); // Refresh list
-}
-
-function dragEnd(event) {
-    event.target.style.opacity = 1;
+// Update the transaction order based on the new order in the DOM
+function updateTransactionOrder() {
+    const reorderedItems = Array.from(historyList.querySelectorAll('li'));
+    transactions = reorderedItems.map(item => {
+        const index = item.dataset.index;
+        return transactions[index];
+    });
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+    displayTransactions();
 }
 
 // Export to CSV functionality
 function exportToCSV() {
-    let csvContent = "data:text/csv;charset=utf-8,Description,Amount\n";
-    transactions.forEach(transaction => {
-        csvContent += `${transaction.description},${transaction.amount}\n`;
-    });
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = "Description,Amount\n" + 
+        transactions.map(t => `${t.description},${t.amount}`).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "transactions.csv");
-    document.body.appendChild(link); // Required for Firefox
+    link.href = URL.createObjectURL(blob);
+    link.download = "transactions.csv";
+    document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
@@ -107,7 +132,7 @@ function exportToCSV() {
 addTransactionButton.addEventListener('click', addTransaction);
 saveTransactionButton.addEventListener('click', saveTransaction);
 clearDataButton.addEventListener('click', clearAllData);
-exportDataButton.addEventListener('click', exportToCSV); // Add export button functionality
+exportDataButton.addEventListener('click', exportToCSV); // Attach export functionality
 
 // Initial load
 updateBalance();
