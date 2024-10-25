@@ -8,37 +8,29 @@ const balanceDisplay = document.getElementById('balance');
 const clearDataButton = document.getElementById('clear-data');
 const toggleHistoryButton = document.getElementById('toggle-history');
 const historySection = document.getElementById('history-section');
-const exportDataButton = document.getElementById('export-data'); // Reference export button
+const exportDataButton = document.getElementById('export-data');
 
-// Load existing transactions from LocalStorage
+// Transactions array and edit index
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 let editIndex = null;
 
-// Ensure the transaction history is hidden initially
-historySection.style.display = 'none';
+// Initialize UI
+updateBalance();
+displayTransactions();
+historySection.style.display = 'none'; // Start with history hidden
 
-// Toggle Transaction History visibility
-toggleHistoryButton.addEventListener('click', () => {
-    if (historySection.style.display === 'none') {
-        historySection.style.display = 'block';
-        toggleHistoryButton.textContent = 'Hide Transaction History';
-    } else {
-        historySection.style.display = 'none';
-        toggleHistoryButton.textContent = 'Show Transaction History';
-    }
-});
-
+// Function to update balance
 function updateBalance() {
     const total = transactions.reduce((acc, transaction) => acc + transaction.amount, 0);
     balanceDisplay.textContent = `$${total.toFixed(2)}`;
 }
 
+// Function to display transactions in the list
 function displayTransactions() {
-    historyList.innerHTML = ''; // Clear the history list
+    historyList.innerHTML = '';
     transactions.forEach((transaction, index) => {
         const listItem = document.createElement('li');
         listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-        listItem.dataset.index = index; // Store the index for reordering
         listItem.innerHTML = `
             <span>${transaction.description}</span>
             <span>
@@ -47,78 +39,65 @@ function displayTransactions() {
                 <button class="btn btn-primary btn-sm ms-2" onclick="editTransaction(${index})">Edit</button>
             </span>
         `;
-        listItem.setAttribute('draggable', true); // Make item draggable for desktop
         historyList.appendChild(listItem);
     });
-
-    enableDragAndDrop(); // Enable drag and drop
 }
 
-function enableDragAndDrop() {
-    const items = historyList.querySelectorAll('li');
-    let draggedItem = null;
-
-    items.forEach(item => {
-        // For desktop
-        item.addEventListener('dragstart', (e) => {
-            draggedItem = item;
-            setTimeout(() => (item.style.display = 'none'), 0);
-        });
-        item.addEventListener('dragend', () => {
-            setTimeout(() => {
-                draggedItem.style.display = 'block';
-                draggedItem = null;
-            }, 0);
-        });
-        item.addEventListener('dragover', (e) => e.preventDefault());
-        item.addEventListener('drop', (e) => {
-            e.preventDefault();
-            if (draggedItem) {
-                historyList.insertBefore(draggedItem, item);
-                updateTransactionOrder(); // Update transactions order
-            }
-        });
-
-        // For mobile (touch events)
-        item.addEventListener('touchstart', (e) => {
-            draggedItem = item;
-            e.target.style.opacity = 0.5;
-        });
-        item.addEventListener('touchmove', (e) => {
-            const touchLocation = e.targetTouches[0];
-            item.style.position = "absolute";
-            item.style.left = `${touchLocation.pageX}px`;
-            item.style.top = `${touchLocation.pageY}px`;
-        });
-        item.addEventListener('touchend', (e) => {
-            e.target.style.opacity = 1;
-            item.style.position = "relative";
-            item.style.left = "0px";
-            item.style.top = "0px";
-            if (draggedItem && e.target !== draggedItem) {
-                historyList.insertBefore(draggedItem, e.target);
-                updateTransactionOrder();
-            }
-        });
-    });
+// Add new transaction
+function addTransaction() {
+    const description = descriptionInput.value;
+    const amount = parseFloat(amountInput.value);
+    if (description && !isNaN(amount)) {
+        transactions.push({ description, amount });
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        descriptionInput.value = '';
+        amountInput.value = '';
+        updateBalance();
+        displayTransactions();
+    }
 }
 
-// Update the transaction order based on the new order in the DOM
-function updateTransactionOrder() {
-    const reorderedItems = Array.from(historyList.querySelectorAll('li'));
-    transactions = reorderedItems.map(item => {
-        const index = item.dataset.index;
-        return transactions[index];
-    });
+// Delete transaction
+function deleteTransaction(index) {
+    transactions.splice(index, 1);
     localStorage.setItem('transactions', JSON.stringify(transactions));
+    updateBalance();
     displayTransactions();
 }
 
-// Export to CSV functionality
+// Edit transaction
+function editTransaction(index) {
+    editIndex = index;
+    const transaction = transactions[index];
+    descriptionInput.value = transaction.description;
+    amountInput.value = transaction.amount;
+    addTransactionButton.style.display = 'none';
+    saveTransactionButton.style.display = 'block';
+}
+
+// Save edited transaction
+function saveTransaction() {
+    if (editIndex !== null) {
+        const description = descriptionInput.value;
+        const amount = parseFloat(amountInput.value);
+        if (description && !isNaN(amount)) {
+            transactions[editIndex] = { description, amount };
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            descriptionInput.value = '';
+            amountInput.value = '';
+            editIndex = null;
+            addTransactionButton.style.display = 'block';
+            saveTransactionButton.style.display = 'none';
+            updateBalance();
+            displayTransactions();
+        }
+    }
+}
+
+// Export transactions to CSV
 function exportToCSV() {
     const csvContent = "Description,Amount\n" + 
         transactions.map(t => `${t.description},${t.amount}`).join("\n");
-
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -128,12 +107,20 @@ function exportToCSV() {
     document.body.removeChild(link);
 }
 
+// Clear all transactions
+function clearAllData() {
+    transactions = [];
+    localStorage.removeItem('transactions');
+    updateBalance();
+    displayTransactions();
+}
+
 // Event Listeners
 addTransactionButton.addEventListener('click', addTransaction);
 saveTransactionButton.addEventListener('click', saveTransaction);
 clearDataButton.addEventListener('click', clearAllData);
-exportDataButton.addEventListener('click', exportToCSV); // Attach export functionality
-
-// Initial load
-updateBalance();
-displayTransactions();
+toggleHistoryButton.addEventListener('click', () => {
+    historySection.style.display = historySection.style.display === 'none' ? 'block' : 'none';
+    toggleHistoryButton.textContent = historySection.style.display === 'none' ? 'Show Transaction History' : 'Hide Transaction History';
+});
+exportDataButton.addEventListener('click', exportToCSV);
