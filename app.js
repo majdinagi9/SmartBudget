@@ -32,7 +32,10 @@ function displayTransactions() {
         const listItem = document.createElement('li');
         listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
         listItem.dataset.index = index; // Store the index for reordering
+
+        // Add drag handle with three stripes icon
         listItem.innerHTML = `
+            <span class="drag-handle" style="cursor: grab;">&#9776;</span>
             <span>${transaction.description}</span>
             <span>
                 ${transaction.amount > 0 ? '+' : ''}$${transaction.amount.toFixed(2)}
@@ -113,7 +116,12 @@ function enableDragAndDrop() {
     let draggedItemIndex = null;
 
     items.forEach(item => {
+        const handle = item.querySelector('.drag-handle'); // Only drag when interacting with handle
+
         // Desktop drag events
+        handle.addEventListener('mousedown', () => {
+            item.setAttribute('draggable', true);
+        });
         item.addEventListener('dragstart', (e) => {
             draggedItemIndex = item.dataset.index;
             setTimeout(() => (item.style.display = 'none'), 0);
@@ -132,9 +140,9 @@ function enableDragAndDrop() {
                 reorderTransactions(draggedItemIndex, targetIndex);
             }
         });
-
+        
         // Mobile touch events
-        item.addEventListener('touchstart', (e) => {
+        handle.addEventListener('touchstart', (e) => {
             draggedItemIndex = item.dataset.index;
             item.style.opacity = 0.5;
         });
