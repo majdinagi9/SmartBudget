@@ -188,11 +188,16 @@ function exportToCSV() {
 }
 
 // Clear all transactions
+// Clear all transactions with confirmation
 function clearAllData() {
-    transactions = [];
-    localStorage.removeItem('transactions');
-    updateBalance();
-    displayTransactions();
+    // Display confirmation popup
+    const confirmation = window.confirm("Are you sure you want to clear all transactions?");
+    if (confirmation) {
+        transactions = [];
+        localStorage.removeItem('transactions');
+        updateBalance();
+        displayTransactions();
+    }
 }
 
 // Event Listeners for basic functions
