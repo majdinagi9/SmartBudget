@@ -33,12 +33,12 @@ function displayTransactions() {
         listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
         listItem.dataset.index = index; // Store the index for reordering
 
-        // Add drag handle with three stripes icon
         listItem.innerHTML = `
             <span class="drag-handle" style="cursor: grab;">&#9776;</span>
             <span>${transaction.description}</span>
             <span>
                 ${transaction.amount > 0 ? '+' : ''}$${transaction.amount.toFixed(2)}
+                <small class="text-muted d-block">${transaction.dateModified}</small>
                 <button class="btn btn-danger btn-sm ms-2" onclick="deleteTransaction(${index})">Delete</button>
                 <button class="btn btn-primary btn-sm ms-2" onclick="editTransaction(${index})">Edit</button>
             </span>
@@ -57,7 +57,11 @@ function addTransaction() {
 
     // Ensure valid input before adding
     if (description && !isNaN(amount)) {
-        const transaction = { description, amount };
+        const transaction = { 
+            description, 
+            amount, 
+            dateModified: new Date().toLocaleString() // Add current date and time
+        };
         transactions.push(transaction);
         localStorage.setItem('transactions', JSON.stringify(transactions));
         
@@ -97,7 +101,11 @@ function saveTransaction() {
         const description = descriptionInput.value;
         const amount = parseFloat(amountInput.value);
         if (description && !isNaN(amount)) {
-            transactions[editIndex] = { description, amount };
+            transactions[editIndex] = { 
+                description, 
+                amount, 
+                dateModified: new Date().toLocaleString() // Update date modified
+            };
             localStorage.setItem('transactions', JSON.stringify(transactions));
             descriptionInput.value = '';
             amountInput.value = '';
@@ -176,8 +184,8 @@ function reorderTransactions(fromIndex, toIndex) {
 
 // Export transactions to CSV
 function exportToCSV() {
-    const csvContent = "Description,Amount\n" + 
-        transactions.map(t => `${t.description},${t.amount}`).join("\n");
+    const csvContent = "Description,Amount,Date Modified\n" + 
+        transactions.map(t => `${t.description},${t.amount},${t.dateModified}`).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -187,10 +195,8 @@ function exportToCSV() {
     document.body.removeChild(link);
 }
 
-// Clear all transactions
 // Clear all transactions with confirmation
 function clearAllData() {
-    // Display confirmation popup
     const confirmation = window.confirm("Are you sure you want to clear all transactions?");
     if (confirmation) {
         transactions = [];
